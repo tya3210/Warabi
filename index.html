@@ -133,7 +133,21 @@
             font-size: 0.9em;
         }
 
-        /* その他のスタイルは前回と同じ */
+        .location-marker {
+            background: var(--secondary-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .accuracy-circle {
+            fill: none;
+            stroke: var(--secondary-color);
+            stroke-width: 2;
+            stroke-opacity: 0.2;
+        }
     </style>
 </head>
 <body>
@@ -160,8 +174,6 @@
                     </label>
                 </div>
             </div>
-
-            <!-- 健康情報と伝言板のタブ内容は前回と同じ -->
         </div>
 
         <div class="map-legend">
@@ -206,12 +218,10 @@
                 preferCanvas: true
             });
 
-            // 基本地図レイヤー
             L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
                 attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'
             }).addTo(state.map);
 
-            // 洪水浸水想定区域（全国）
             state.layers.flood = L.tileLayer.wms('https://disaportal.gsi.go.jp/hazardmap/capable/wms', {
                 layers: 'kouzui_keika',
                 format: 'image/png',
@@ -221,7 +231,6 @@
                 updateWhenIdle: true
             });
 
-            // 土砂災害警戒区域（全国）
             state.layers.landslide = L.tileLayer.wms('https://disaportal.gsi.go.jp/hazardmap/capable/wms', {
                 layers: 'dosya_kikenkuiki',
                 format: 'image/png',
@@ -231,17 +240,77 @@
                 updateWhenIdle: true
             });
 
-            // 初期表示
             state.layers.flood.addTo(state.map);
             state.layers.landslide.addTo(state.map);
         }
 
-        // 位置情報関連の関数（前回と同じ）
-        function startTracking() { /* ... */ }
-        function handleGeolocationError(error) { /* ... */ }
-        function updateLocationInfo(text) { /* ... */ }
+        function updateLocation(position) {
+            const { latitude, longitude, accuracy } = position.coords;
+            
+            if (state.currentLocationMarker) {
+                state.map.removeLayer(state.currentLocationMarker);
+                state.map.removeLayer(state.accuracyCircle);
+            }
 
-        // レイヤー切り替え処理
+            state.currentLocationMarker = L.marker([latitude, longitude], {
+                icon: L.divIcon({
+                    className: 'location-marker',
+                    iconSize: [16, 16]
+                })
+            }).addTo(state.map);
+
+            state.accuracyCircle = L.circle([latitude, longitude], {
+                color: '#3498db',
+                fillColor: '#3498db',
+                fillOpacity: 0.1,
+                radius: accuracy
+            }).addTo(state.map);
+
+            state.map.panTo([latitude, longitude], { animate: true, duration: 1 });
+            
+            updateLocationInfo(`
+                緯度: ${latitude.toFixed(5)}<br>
+                経度: ${longitude.toFixed(5)}<br>
+                精度: ${Math.round(accuracy)} メートル
+            `);
+        }
+
+        function startTracking() {
+            if (!navigator.geolocation) return;
+
+            state.watchId = navigator.geolocation.watchPosition(
+                position => updateLocation(position),
+                error => handleGeolocationError(error),
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 10000,
+                    timeout: 5000
+                }
+            );
+        }
+
+        function handleGeolocationError(error) {
+            let message = '位置情報の取得に失敗しました: ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += '位置情報サービスの許可が必要です';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += '位置情報が利用できません';
+                    break;
+                case error.TIMEOUT:
+                    message += 'タイムアウトしました';
+                    break;
+                default:
+                    message += '不明なエラー';
+            }
+            updateLocationInfo(message);
+        }
+
+        function updateLocationInfo(text) {
+            document.getElementById('location-info').innerHTML = text;
+        }
+
         document.getElementById('flood-layer').addEventListener('change', (e) => {
             e.target.checked ? state.layers.flood.addTo(state.map) : state.layers.flood.remove();
         });
@@ -250,16 +319,26 @@
             e.target.checked ? state.layers.landslide.addTo(state.map) : state.layers.landslide.remove();
         });
 
-        // その他の初期化処理（前回と同じ）
-        function initApp() {
-            initMap();
-            setupMedicalData();
-            setupMessages();
-            setupUI();
-            
+        document.getElementById('locate-button').addEventListener('click', () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    () => startTracking(),
+                    position => {
+                        updateLocation(position);
+                        state.map.setView([position.coords.latitude, position.coords.longitude], 16);
+                    },
+                    error => handleGeolocationError(error)
+                );
+            }
+        });
+
+        function initApp() {
+            initMap();
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        updateLocation(position);
+                        startTracking();
+                    },
                     error => handleGeolocationError(error)
                 );
             }
