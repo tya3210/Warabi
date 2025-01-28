@@ -6,6 +6,24 @@
     <title>総合防災支援アプリ</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
+        .locate-button {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--safe-green);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 1100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
@@ -193,6 +211,88 @@
     </style>
 </head>
 <body>
+    <button class="locate-button" id="locate-button">📍</button>
+
+    <script>
+        // 既存のstateオブジェクトに現在地情報を追加
+        const state = {
+            // ...既存のプロパティ...
+            currentLocation: null,
+            locationMarker: null
+        };
+
+        // 現在地取得機能の追加
+        function setupGeolocation() {
+            const locateButton = document.getElementById('locate-button');
+            
+            // 位置情報取得処理
+            const getLocation = () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            const pos = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            
+                            // 現在地の更新
+                            state.currentLocation = pos;
+                            
+                            // マーカーの更新
+                            if (state.locationMarker) {
+                                state.map.removeLayer(state.locationMarker);
+                            }
+                            
+                            // 新しいマーカーを追加
+                            state.locationMarker = L.marker([pos.lat, pos.lng], {
+                                icon: L.divIcon({
+                                    className: 'current-location-marker',
+                                    html: '📍',
+                                    iconSize: [40, 40]
+                                })
+                            }).addTo(state.map);
+                            
+                            // 地図を現在地に移動
+                            state.map.setView([pos.lat, pos.lng], 16);
+                        },
+                        error => {
+                            handleLocationError(error);
+                        }
+                    );
+                } else {
+                    alert("お使いのブラウザは位置情報をサポートしていません");
+                }
+            };
+
+            // エラーハンドリング
+            const handleLocationError = error => {
+                let message = "位置情報を取得できませんでした";
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = "位置情報の利用が許可されていません";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = "位置情報が利用できません";
+                        break;
+                    case error.TIMEOUT:
+                        message = "位置情報の取得がタイムアウトしました";
+                        break;
+                }
+                showAlert(message, 'error');
+            };
+
+            // ボタンクリックイベント
+            locateButton.addEventListener('click', getLocation);
+        }
+
+        // 初期化処理に追加
+        function initApp() {
+            initMap();
+            setupMedicalData();
+            setupMessages();
+            setupUI();
+            setupGeolocation(); // ← 追加
+        }
     <div id="app-container">
         <div id="main-map"></div>
 
