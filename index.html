@@ -6,24 +6,6 @@
     <title>総合防災支援アプリ</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        .locate-button {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--safe-green);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
-            z-index: 1100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
-        }
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #3498db;
@@ -190,6 +172,25 @@
             white-space: nowrap;
         }
 
+        /* 追加スタイル */
+        .location-info {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            font-size: 0.9em;
+        }
+        
+        .accuracy-circle {
+            stroke: #3388ff;
+            stroke-width: 2;
+            fill: rgba(51, 136, 255, 0.15);
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -211,88 +212,6 @@
     </style>
 </head>
 <body>
-    <button class="locate-button" id="locate-button">📍</button>
-
-    <script>
-        // 既存のstateオブジェクトに現在地情報を追加
-        const state = {
-            // ...既存のプロパティ...
-            currentLocation: null,
-            locationMarker: null
-        };
-
-        // 現在地取得機能の追加
-        function setupGeolocation() {
-            const locateButton = document.getElementById('locate-button');
-            
-            // 位置情報取得処理
-            const getLocation = () => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        position => {
-                            const pos = {
-                                lat: position.coords.latitude,
-                                lng: position.coords.longitude
-                            };
-                            
-                            // 現在地の更新
-                            state.currentLocation = pos;
-                            
-                            // マーカーの更新
-                            if (state.locationMarker) {
-                                state.map.removeLayer(state.locationMarker);
-                            }
-                            
-                            // 新しいマーカーを追加
-                            state.locationMarker = L.marker([pos.lat, pos.lng], {
-                                icon: L.divIcon({
-                                    className: 'current-location-marker',
-                                    html: '📍',
-                                    iconSize: [40, 40]
-                                })
-                            }).addTo(state.map);
-                            
-                            // 地図を現在地に移動
-                            state.map.setView([pos.lat, pos.lng], 16);
-                        },
-                        error => {
-                            handleLocationError(error);
-                        }
-                    );
-                } else {
-                    alert("お使いのブラウザは位置情報をサポートしていません");
-                }
-            };
-
-            // エラーハンドリング
-            const handleLocationError = error => {
-                let message = "位置情報を取得できませんでした";
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        message = "位置情報の利用が許可されていません";
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        message = "位置情報が利用できません";
-                        break;
-                    case error.TIMEOUT:
-                        message = "位置情報の取得がタイムアウトしました";
-                        break;
-                }
-                showAlert(message, 'error');
-            };
-
-            // ボタンクリックイベント
-            locateButton.addEventListener('click', getLocation);
-        }
-
-        // 初期化処理に追加
-        function initApp() {
-            initMap();
-            setupMedicalData();
-            setupMessages();
-            setupUI();
-            setupGeolocation(); // ← 追加
-        }
     <div id="app-container">
         <div id="main-map"></div>
 
@@ -355,7 +274,13 @@
             🚨 緊急事態！直ちに避難してください！
         </div>
 
+        <!-- 追加要素 -->
+        <div class="location-info" id="location-info">
+            位置情報取得中...
+        </div>
+        
         <button class="floating-button" id="menu-button">☰</button>
+        <button class="floating-button" id="locate-button" style="right: 90px;">📍</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -369,7 +294,11 @@
             messages: JSON.parse(localStorage.getItem('messages')) || [],
             medicalData: JSON.parse(localStorage.getItem('medicalData')) || {},
             currentMarker: null,
-            longPressTimer: null
+            longPressTimer: null,
+            // 現在地追跡用の状態
+            currentLocationMarker: null,
+            accuracyCircle: null,
+            watchId: null
         };
 
         function initMap() {
@@ -398,6 +327,76 @@
                 color: "#ff6600",
                 fillOpacity: 0.2
             }).addTo(state.layers.landslide);
+        }
+
+        // 位置情報追跡機能
+        function startTracking() {
+            if (!navigator.geolocation) {
+                updateLocationInfo('位置情報はサポートされていません');
+                return;
+            }
+
+            state.watchId = navigator.geolocation.watchPosition(
+                position => {
+                    const coords = position.coords;
+                    const pos = [coords.latitude, coords.longitude];
+                    
+                    // 現在地マーカーの更新
+                    if (!state.currentLocationMarker) {
+                        state.currentLocationMarker = L.circleMarker(pos, {
+                            color: '#3388ff',
+                            fillColor: '#3388ff',
+                            fillOpacity: 0.5,
+                            radius: 8
+                        }).addTo(state.map)
+                        .bindPopup("現在地");
+                        
+                        state.accuracyCircle = L.circle(pos, {
+                            radius: coords.accuracy,
+                            className: 'accuracy-circle'
+                        }).addTo(state.map);
+                    } else {
+                        state.currentLocationMarker.setLatLng(pos);
+                        state.accuracyCircle.setLatLng(pos)
+                            .setRadius(coords.accuracy);
+                    }
+                    
+                    // 位置情報表示の更新
+                    updateLocationInfo(
+                        `緯度: ${pos[0].toFixed(5)}<br>
+                        経度: ${pos[1].toFixed(5)}<br>
+                        精度: ${coords.accuracy.toFixed(1)}m`
+                    );
+                },
+                error => handleGeolocationError(error),
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 15000,
+                    timeout: 10000
+                }
+            );
+        }
+
+        function handleGeolocationError(error) {
+            let message = '位置情報取得エラー: ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += '位置情報の使用が許可されていません';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += '位置情報が利用できません';
+                    break;
+                case error.TIMEOUT:
+                    message += 'タイムアウトしました';
+                    break;
+                default:
+                    message += '不明なエラー';
+            }
+            updateLocationInfo(message);
+        }
+
+        function updateLocationInfo(text) {
+            document.getElementById('location-info').innerHTML = text;
         }
 
         function saveToStorage(key, data) {
@@ -544,7 +543,7 @@
 
             document.querySelector('.save-button').addEventListener('click', () => {
                 state.medicalData = {
-                    healthStatus: document.getElementById('health-status').value,
+                                        healthStatus: document.getElementById('health-status').value,
                     allergies: document.getElementById('allergies').value,
                     medications: document.getElementById('medications').value,
                     lastUpdated: Date.now()
@@ -583,6 +582,16 @@
             document.getElementById('menu-button').addEventListener('click', () => {
                 document.querySelector('.sidebar').classList.toggle('active');
             });
+
+            // 現在地ボタンのイベントハンドラ
+            document.getElementById('locate-button').addEventListener('click', () => {
+                if (state.currentLocationMarker) {
+                    state.map.flyTo(state.currentLocationMarker.getLatLng(), 16, {
+                        animate: true,
+                        duration: 1
+                    });
+                }
+            });
         }
 
         function showAlert(message, type = 'info') {
@@ -598,9 +607,18 @@
             setupMedicalData();
             setupMessages();
             setupUI();
+            
+            // 位置情報の許可をリクエスト
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    () => startTracking(),
+                    error => handleGeolocationError(error)
+                );
+            }
         }
 
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
+                
