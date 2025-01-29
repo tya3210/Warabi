@@ -3,646 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>総合防災支援アプリ</title>
+    <title>防災サポートアプリ</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --emergency-red: #e74c3c;
-            --safe-green: #2ecc71;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            line-height: 1.6;
-        }
-
-        #app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        #main-map {
-            flex: 1;
-            background: #f8f9fa;
-            position: relative;
-        }
-
-        .sidebar {
-            width: 100%;
-            max-width: 400px;
-            background: white;
-            box-shadow: -2px 0 15px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            right: -100%;
-            bottom: 0;
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .sidebar.active {
-            transform: translateX(-100%);
-        }
-
-        .tab-header {
-            display: flex;
-            border-bottom: 1px solid #eee;
-        }
-
-        .tab-button {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            background: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .tab-button.active {
-            background: var(--secondary-color);
-            color: white;
-        }
-
-        .tab-content {
-            padding: 20px;
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .medical-form .form-group {
-            margin-bottom: 15px;
-        }
-
-        .medical-form label {
-            display: block;
-            margin-bottom: 5px;
-            color: var(--primary-color);
-            font-weight: 500;
-        }
-
-        .medical-form textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            resize: vertical;
-        }
-
-        .message-list {
-            margin-top: 15px;
-        }
-
-        .message-item {
-            background: #f8f9fa;
-            padding: 12px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            border-left: 4px solid var(--secondary-color);
-        }
-
-        .floating-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--secondary-color);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
-            z-index: 1100;
-        }
-
-        .location-button {
-            bottom: 80px;
-            background: var(--safe-green);
-        }
-
-        .emergency-alert {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: var(--emergency-red);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            animation: pulse 1.5s infinite;
-            z-index: 1200;
-            display: none;
-        }
-
-        .context-menu {
-            position: absolute;
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            z-index: 10000;
-            border-radius: 6px;
-            padding: 8px 0;
-            display: none;
-        }
-
-        .context-menu-item {
-            padding: 8px 20px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .context-menu-item:hover {
-            background: #f5f5f5;
-        }
-
-        .username-tag {
-            position: absolute;
-            background: var(--secondary-color);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            transform: translateY(-32px);
-            white-space: nowrap;
-        }
-
-        .location-marker {
-            background: var(--secondary-color);
-            border: 2px solid white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-
-        .accuracy-circle {
-            fill: none;
-            stroke: var(--secondary-color);
-            stroke-width: 2;
-            stroke-opacity: 0.2;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        @media (min-width: 768px) {
-            #app-container {
-                flex-direction: row;
-            }
-
-            .sidebar {
-                position: relative;
-                right: 0;
-                transform: none;
-                box-shadow: none;
-            }
-        }
+        /* スタイリング */
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        .tab { overflow: hidden; border: 1px solid #ccc; background-color: #f1f1f1; }
+        .tab button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; }
+        .tab button:hover { background-color: #ddd; }
+        .tab button.active { background-color: #ccc; }
+        .tabcontent { display: none; padding: 6px 12px; border: 1px solid #ccc; border-top: none; }
+        #map { height: 400px; margin: 10px 0; }
+        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .item-card { border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <div id="app-container">
-        <div id="main-map"></div>
+    <!-- タブナビゲーション -->
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'supplies')">防災グッズ</button>
+        <button class="tablinks" onclick="openTab(event, 'map')">地図</button>
+        <button class="tablinks" onclick="openTab(event, 'bulletin')">掲示板</button>
+        <button class="tablinks" onclick="openTab(event, 'log')">行動ログ</button>
+    </div>
 
-        <div class="sidebar">
-            <div class="tab-header">
-                <button class="tab-button active" data-tab="hazard">ハザード</button>
-                <button class="tab-button" data-tab="medical">健康情報</button>
-                <button class="tab-button" data-tab="messages">伝言板</button>
-            </div>
+    <!-- 防災グッズ管理 -->
+    <div id="supplies" class="tabcontent">
+        <h3>防災グッズ管理</h3>
+        <div class="item-grid" id="suppliesList"></div>
+        <button onclick="showAddItemForm()">新しいアイテムを追加</button>
+    </div>
 
-            <div id="hazard" class="tab-content active">
-                <h2 style="padding: 20px;">ハザードマップ設定</h2>
-                <div style="padding: 0 20px 20px;">
-                    <label class="layer-toggle">
-                        <input type="checkbox" id="flood-layer">
-                        洪水リスク
-                    </label>
-                    <label class="layer-toggle">
-                        <input type="checkbox" id="landslide-layer">
-                        土砂災害リスク
-                    </label>
-                </div>
-            </div>
+    <!-- 地図表示 -->
+    <div id="map" class="tabcontent">
+        <div id="mapContainer"></div>
+        <select id="layerSelect" onchange="changeLayer()">
+            <option value="shelters">避難所</option>
+            <option value="messages">伝言板</option>
+            <option value="shops">営業店舗</option>
+        </select>
+    </div>
 
-            <div id="medical" class="tab-content">
-                <div style="padding: 20px;">
-                    <h2>防災カルテ</h2>
-                    <form class="medical-form">
-                        <div class="form-group">
-                            <label>健康状態</label>
-                            <textarea id="health-status" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>アレルギー情報</label>
-                            <textarea id="allergies" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>常用薬</label>
-                            <textarea id="medications" rows="3"></textarea>
-                        </div>
-                        <button type="button" class="save-button" style="margin-top: 15px; padding: 10px 20px; background: var(--secondary-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            保存
-                        </button>
-                    </form>
-                </div>
-            </div>
+    <!-- 伝言掲示板 -->
+    <div id="bulletin" class="tabcontent">
+        <h3>地域掲示板</h3>
+        <div id="messagesList"></div>
+        <textarea id="newMessage" placeholder="メッセージを入力"></textarea>
+        <button onclick="postMessage()">投稿</button>
+    </div>
 
-            <div id="messages" class="tab-content">
-                <div style="padding: 20px;">
-                    <h2>伝言板</h2>
-                    <div class="message-list" id="message-list"></div>
-                    <button class="add-message-button" style="margin-top: 15px; padding: 10px 20px; background: var(--safe-green); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                        新しい伝言を追加
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="emergency-alert" id="emergency-alert">
-            🚨 緊急事態！直ちに避難してください！
-        </div>
-
-        <button class="floating-button" id="menu-button">☰</button>
-        <button class="floating-button location-button" id="location-button">📍</button>
+    <!-- 行動ログ -->
+    <div id="log" class="tabcontent">
+        <h3>防災行動ログ</h3>
+        <div id="logEntries"></div>
+        <textarea id="newLog" placeholder="経験を記録"></textarea>
+        <button onclick="addLogEntry()">追加</button>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        const state = {
-            map: null,
-            layers: {
-                flood: L.layerGroup(),
-                landslide: L.layerGroup()
-            },
-            messages: JSON.parse(localStorage.getItem('messages')) || [],
-            medicalData: JSON.parse(localStorage.getItem('medicalData')) || {},
-            currentMarker: null,
-            longPressTimer: null,
-            locationWatchId: null,
-            currentLocationMarker: null,
-            accuracyCircle: null,
-            isTracking: false
+        // データストレージ
+        let appData = JSON.parse(localStorage.getItem('disasterAppData')) || {
+            supplies: [],
+            messages: [],
+            logs: [],
+            shelters: []
         };
 
-        function initMap() {
-            state.map = L.map('main-map', {
-                center: [35.681236, 139.767125],
-                zoom: 13,
-                preferCanvas: true
-            });
+        // 地図初期化
+        let map = L.map('mapContainer').setView([35.681236, 139.767125], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-            L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',
-                maxZoom: 18,
-                minZoom: 5
-            }).addTo(state.map);
-
-            L.rectangle([[35.67, 139.75], [35.69, 139.77]], {
-                color: "#0066ff",
-                fillOpacity: 0.2
-            }).addTo(state.layers.flood);
-
-            L.polygon([
-                [35.68, 139.76],
-                [35.685, 139.765],
-                [35.68, 139.77]
-            ], {
-                color: "#ff6600",
-                fillOpacity: 0.2
-            }).addTo(state.layers.landslide);
+        // タブ機能
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tabcontent').forEach(tab => tab.style.display = 'none');
+            document.getElementById(tabName).style.display = 'block';
+            evt.currentTarget.className += ' active';
         }
 
-        function initLocationTracking() {
-            const locationButton = document.getElementById('location-button');
-            
-            locationButton.addEventListener('click', () => {
-                if (!state.isTracking) {
-                    startTracking();
-                } else {
-                    stopTracking();
-                }
-            });
+        // 防災グッズ管理
+        function renderSupplies() {
+            const container = document.getElementById('suppliesList');
+            container.innerHTML = appData.supplies.map(item => `
+                <div class="item-card">
+                    <h4>${item.name}</h4>
+                    <p>数量: ${item.quantity}</p>
+                    <p>期限: ${item.expiry}</p>
+                </div>
+            `).join('');
+        }
 
-            // 初期位置情報取得
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    state.map.setView([
-                        position.coords.latitude,
-                        position.coords.longitude
-                    ], 15);
+        function showAddItemForm() {
+            const name = prompt('アイテム名を入力:');
+            const quantity = prompt('数量を入力:');
+            const expiry = prompt('期限を入力:');
+            if (name && quantity && expiry) {
+                appData.supplies.push({ name, quantity, expiry });
+                saveData();
+                renderSupplies();
+            }
+        }
+
+        // 掲示板機能
+        function postMessage() {
+            const text = document.getElementById('newMessage').value;
+            if (text) {
+                appData.messages.push({
+                    text,
+                    date: new Date().toLocaleString(),
+                    location: [map.getCenter().lat, map.getCenter().lng]
                 });
+                saveData();
+                renderMessages();
             }
         }
 
-        function startTracking() {
-            if (!navigator.geolocation) {
-                showAlert('お使いのブラウザは位置情報をサポートしていません', 'error');
-                return;
-            }
-
-            state.isTracking = true;
-            document.getElementById('location-button').style.background = 'var(--safe-green)';
-
-            state.locationWatchId = navigator.geolocation.watchPosition(
-                position => {
-                    const { latitude, longitude, accuracy } = position.coords;
-                    updateLocationMarker(latitude, longitude, accuracy);
-                    state.map.setView([latitude, longitude], state.map.getZoom());
-                },
-                error => {
-                    handleLocationError(error);
-                    stopTracking();
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 30000,
-                    timeout: 27000
-                }
-            );
+        function renderMessages() {
+            const container = document.getElementById('messagesList');
+            container.innerHTML = appData.messages.map(msg => `
+                <div class="message">
+                    <p>${msg.date}</p>
+                    <p>${msg.text}</p>
+                </div>
+            `).join('');
         }
 
-        function updateLocationMarker(lat, lng, accuracy) {
-            if (state.currentLocationMarker) {
-                state.map.removeLayer(state.currentLocationMarker);
-                state.map.removeLayer(state.accuracyCircle);
-            }
-
-            state.accuracyCircle = L.circle([lat, lng], {
-                radius: accuracy,
-                className: 'accuracy-circle'
-            }).addTo(state.map);
-
-            state.currentLocationMarker = L.marker([lat, lng], {
-                icon: L.divIcon({
-                    className: 'location-marker',
-                    iconSize: [20, 20]
-                }),
-                zIndexOffset: 1000
-            }).addTo(state.map);
-        }
-
-        function handleLocationError(error) {
-            let message = '位置情報の取得に失敗しました: ';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    message += '位置情報の利用が許可されていません';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message += '位置情報が利用できません';
-                    break;
-                case error.TIMEOUT:
-                    message += '位置情報の取得がタイムアウトしました';
-                    break;
-                default:
-                    message += '不明なエラー';
-            }
-            showAlert(message, 'error');
-        }
-
-        function stopTracking() {
-            if (state.locationWatchId) {
-                navigator.geolocation.clearWatch(state.locationWatchId);
-                state.locationWatchId = null;
-            }
-            state.isTracking = false;
-            document.getElementById('location-button').style.background = 'var(--secondary-color)';
-            
-            if (state.currentLocationMarker) {
-                state.map.removeLayer(state.currentLocationMarker);
-                state.map.removeLayer(state.accuracyCircle);
-            }
-        }
-
-        function saveToStorage(key, data) {
-            try {
-                localStorage.setItem(key, JSON.stringify(data));
-                return true;
-            } catch (e) {
-                console.error('保存エラー:', e);
-                showAlert('データの保存に失敗しました', 'error');
-                return false;
-            }
-        }
-
-        function setupMessages() {
-            const renderMessages = () => {
-                const container = document.getElementById('message-list');
-                container.innerHTML = state.messages.map((msg, index) => `
-                    <div class="message-item" data-index="${index}">
-                        <p>${msg.user ? `<strong>${msg.user}:</strong> ` : ''}${msg.text}</p>
-                        <small>
-                            ${new Date(msg.timestamp).toLocaleString()} 
-                            (${msg.coords.lat.toFixed(4)}, ${msg.coords.lng.toFixed(4)})
-                        </small>
-                    </div>
-                `).join('');
-            };
-
-            const addMarkerWithUsername = (msg) => {
-                const marker = L.marker(msg.coords)
-                    .addTo(state.map)
-                    .bindPopup(`<b>${msg.user || '匿名'}</b><br>${msg.text}`);
-                
-                if (msg.user) {
-                    const usernameTag = L.divIcon({
-                        className: 'username-tag',
-                        html: msg.user,
-                        iconSize: [null, 24]
-                    });
-                    L.marker(msg.coords, { icon: usernameTag }).addTo(state.map);
-                }
-
-                marker.on('mousedown', (e) => handleLongPressStart(e, marker));
-                marker.on('mouseup', handleLongPressEnd);
-                marker.on('mouseout', handleLongPressEnd);
-
-                return marker;
-            };
-
-            state.messages.forEach(msg => {
-                msg.marker = addMarkerWithUsername(msg);
-            });
-
-            document.querySelector('.add-message-button').addEventListener('click', async () => {
-                const user = prompt('ユーザー名を入力（任意）:') || '匿名';
-                const message = prompt('伝言を入力（300文字以内）:');
-                
-                if (message && message.length <= 300) {
-                    state.map.once('click', e => {
-                        const newMsg = {
-                            user,
-                            text: message,
-                            coords: e.latlng,
-                            timestamp: Date.now()
-                        };
-                        
-                        newMsg.marker = addMarkerWithUsername(newMsg);
-                        state.messages.push(newMsg);
-                        saveToStorage('messages', state.messages);
-                        renderMessages();
-                    });
-                    alert('地図上の位置を選択してください');
-                }
-            });
-
-            renderMessages();
-        }
-
-        function handleLongPressStart(e, marker) {
-            state.currentMarker = marker;
-            state.longPressTimer = setTimeout(() => {
-                showContextMenu(e.originalEvent.clientX, e.originalEvent.clientY);
-            }, 1000);
-        }
-
-        function handleLongPressEnd() {
-            clearTimeout(state.longPressTimer);
-        }
-
-        function showContextMenu(x, y) {
-            const menu = document.createElement('div');
-            menu.className = 'context-menu';
-            menu.style.left = `${x}px`;
-            menu.style.top = `${y}px`;
-            
-            menu.innerHTML = `
-                <div class="context-menu-item" onclick="handleEditMessage()">編集</div>
-                <div class="context-menu-item" onclick="handleDeleteMessage()">削除</div>
-            `;
-            
-            document.body.appendChild(menu);
-            menu.style.display = 'block';
-            
-            const closeMenu = () => {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            };
-            
-            document.addEventListener('click', closeMenu);
-        }
-
-        window.handleEditMessage = () => {
-            if (!state.currentMarker) return;
-            
-            const msgIndex = state.messages.findIndex(m => m.marker === state.currentMarker);
-            const newText = prompt('メッセージを編集:', state.messages[msgIndex].text);
-            
-            if (newText && newText.length <= 300) {
-                state.messages[msgIndex].text = newText;
-                state.currentMarker.setPopupContent(`<b>${state.messages[msgIndex].user || '匿名'}</b><br>${newText}`);
-                saveToStorage('messages', state.messages);
-                document.querySelector(`.message-item[data-index="${msgIndex}"] p`).innerHTML = 
-                    `${state.messages[msgIndex].user ? `<strong>${state.messages[msgIndex].user}:</strong> ` : ''}${newText}`;
-            }
-        };
-
-        window.handleDeleteMessage = () => {
-            if (!state.currentMarker) return;
-            
-            if (confirm('本当に削除しますか？')) {
-                const msgIndex = state.messages.findIndex(m => m.marker === state.currentMarker);
-                state.map.removeLayer(state.messages[msgIndex].marker);
-                state.messages.splice(msgIndex, 1);
-                saveToStorage('messages', state.messages);
-                document.querySelector(`.message-item[data-index="${msgIndex}"]`).remove();
-            }
-        };
-        function setupMedicalData() {
-            const loadData = () => {
-                document.getElementById('health-status').value = state.medicalData.healthStatus || '';
-                document.getElementById('allergies').value = state.medicalData.allergies || '';
-                document.getElementById('medications').value = state.medicalData.medications || '';
-            };
-
-            document.querySelector('.save-button').addEventListener('click', () => {
-                state.medicalData = {
-                    healthStatus: document.getElementById('health-status').value,
-                    allergies: document.getElementById('allergies').value,
-                    medications: document.getElementById('medications').value,
-                    lastUpdated: Date.now()
-                };
-                if (saveToStorage('medicalData', state.medicalData)) {
-                    showAlert('健康情報を保存しました', 'success');
-                }
-            });
-
-            loadData();
-        }
-
-        function setupUI() {
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    const tabId = button.dataset.tab;
-                    button.classList.add('active');
-                    document.getElementById(tabId).classList.add('active');
+        // 行動ログ
+        function addLogEntry() {
+            const text = document.getElementById('newLog').value;
+            if (text) {
+                appData.logs.push({
+                    text,
+                    date: new Date().toLocaleString(),
+                    advice: generateAdvice(text)
                 });
-            });
-
-            document.querySelectorAll('.layer-toggle input').forEach(toggle => {
-                toggle.addEventListener('change', e => {
-                    const layer = e.target.id.replace('-layer', '');
-                    if (e.target.checked) {
-                        state.layers[layer].addTo(state.map);
-                    } else {
-                        state.map.removeLayer(state.layers[layer]);
-                    }
-                });
-            });
-
-            document.getElementById('menu-button').addEventListener('click', () => {
-                document.querySelector('.sidebar').classList.toggle('active');
-            });
+                saveData();
+                renderLogs();
+            }
         }
 
-        function showAlert(message, type = 'info') {
-            const alertBox = document.createElement('div');
-            alertBox.className = `alert-${type}`;
-            alertBox.textContent = message;
-            alertBox.style.position = 'fixed';
-            alertBox.style.bottom = '80px';
-            alertBox.style.left = '20px';
-            alertBox.style.padding = '15px 25px';
-            alertBox.style.borderRadius = '8px';
-            alertBox.style.background = type === 'error' ? 'var(--emergency-red)' : 'var(--safe-green)';
-            alertBox.style.color = 'white';
-            alertBox.style.zIndex = '1300';
-            alertBox.style.animation = 'pulse 1.5s infinite';
-            
-            document.body.appendChild(alertBox);
-            setTimeout(() => alertBox.remove(), 3000);
+        function generateAdvice(text) {
+            // 簡易AIアドバイス（ダミーデータ）
+            const keywords = {
+                '水': '水の備蓄は1人3リットル/日が目安です',
+                '懐中電灯': 'LEDタイプが電池寿命が長くおすすめです',
+                '避難所': '事前に複数の避難経路を確認しましょう'
+            };
+            return Object.entries(keywords).find(([k]) => text.includes(k))?.[1] || '定期的な防災訓練が重要です';
         }
 
-        function initApp() {
-            initMap();
-            setupMedicalData();
-            setupMessages();
-            setupUI();
-            initLocationTracking();
-            
-            // 緊急アラートテスト（開発用）
-            setTimeout(() => {
-                document.getElementById('emergency-alert').style.display = 'block';
-            }, 5000);
+        function renderLogs() {
+            const container = document.getElementById('logEntries');
+            container.innerHTML = appData.logs.map(log => `
+                <div class="log-entry">
+                    <p>${log.date} - ${log.text}</p>
+                    <p class="advice">アドバイス: ${log.advice}</p>
+                </div>
+            `).join('');
         }
 
-        document.addEventListener('DOMContentLoaded', initApp);
+        // データ保存
+        function saveData() {
+            localStorage.setItem('disasterAppData', JSON.stringify(appData));
+        }
+
+        // 初期表示
+        document.getElementById('supplies').style.display = 'block';
+        renderSupplies();
+        renderMessages();
+        renderLogs();
     </script>
 </body>
 </html>
