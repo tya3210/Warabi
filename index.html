@@ -1,225 +1,255 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>防災サポートアプリ - 国土地理院地図版</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <style>
-        body { margin: 0; padding: 20px; font-family: "Meiryo", sans-serif; }
-        .tab { overflow: hidden; border: 1px solid #ccc; background-color: #f1f1f1; }
-        .tab button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; }
-        .tab button:hover { background-color: #ddd; }
-        .tab button.active { background-color: #ccc; }
-        .tabcontent { display: none; padding: 6px 12px; border: 1px solid #ccc; border-top: none; }
-        #mapContainer { height: 500px; margin: 10px 0; }
-        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-        .item-card { border: 1px solid #ddd; padding: 10px; border-radius: 5px; margin: 5px; }
-        .message { background-color: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 5px; }
-        .layer-control { position: absolute; top: 100px; right: 10px; z-index: 1000; background: white; padding: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>災害対策デモアプリ</title>
+  <!-- LeafletのCSS (地図表示用) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+o0m0L+Q6TTd5D1AFCTb9dENxQ0f4QbP+DU3o1wRM=" crossorigin=""/>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; }
+    header { background: #007acc; color: #fff; padding: 1rem; text-align: center; }
+    nav { background: #eee; padding: 0.5rem; }
+    nav button { margin-right: 0.5rem; }
+    section { display: none; padding: 1rem; }
+    section.active { display: block; }
+    /* 地図の表示エリア */
+    #map { height: 400px; margin-bottom: 1rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    ul { list-style: none; padding: 0; }
+    li { margin-bottom: 0.5rem; }
+    .form-group { margin-bottom: 0.5rem; }
+  </style>
 </head>
 <body>
-    <div class="tab">
-        <button class="tablinks" onclick="openTab(event, 'supplies')">防災グッズ</button>
-        <button class="tablinks" onclick="openTab(event, 'map')">地図</button>
-        <button class="tablinks" onclick="openTab(event, 'bulletin')">掲示板</button>
-        <button class="tablinks" onclick="openTab(event, 'log')">行動ログ</button>
+  <header>
+    <h1>災害対策デモアプリ</h1>
+  </header>
+  <nav>
+    <button data-tab="supplies">防災グッズ</button>
+    <button data-tab="stores">店舗情報</button>
+    <button data-tab="message">伝言掲示板</button>
+    <button data-tab="evacuation">避難所状況</button>
+    <button data-tab="community">コミュニティ掲示板</button>
+    <button data-tab="actionLog">アクションログ</button>
+  </nav>
+  
+  <!-- 各機能の表示エリア -->
+  <!-- 防災グッズ一覧 -->
+  <section id="supplies" class="active">
+    <h2>防災グッズの数・期限管理</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>アイテム</th>
+          <th>在庫数</th>
+          <th>有効期限</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>飲料水</td>
+          <td>10本</td>
+          <td>2025-06-30</td>
+        </tr>
+        <tr>
+          <td>非常食</td>
+          <td>5食</td>
+          <td>2024-12-31</td>
+        </tr>
+        <tr>
+          <td>懐中電灯</td>
+          <td>3個</td>
+          <td>2027-03-15</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  
+  <!-- 営業再開店舗＋避難所状況＋伝言掲示板用の地図 -->
+  <section id="stores">
+    <h2>被災地の店舗情報（営業再開）</h2>
+    <p>各種店舗情報をレイヤー管理で表示します。</p>
+    <div id="map"></div>
+    <p>下記のチェックボックスで表示レイヤーを切り替え可能です。</p>
+    <div>
+      <label><input type="checkbox" id="layerStores" checked> 営業再開店舗</label>
+      <label><input type="checkbox" id="layerEvacuation" checked> 避難所状況</label>
+      <label><input type="checkbox" id="layerMessage" checked> 伝言ピン</label>
     </div>
-
-    <div id="supplies" class="tabcontent">
-        <h3>防災グッズ管理</h3>
-        <div class="item-grid" id="suppliesList"></div>
-        <button onclick="showAddItemForm()">新しいアイテムを追加</button>
+  </section>
+  
+  <!-- 伝言掲示板 -->
+  <section id="message">
+    <h2>伝言掲示板 with 位置情報</h2>
+    <p>地図上にピンを立て、メッセージを投稿できます。<br>
+       ※店舗画面と同じ地図エリアを利用していますので、下記で伝言ピンを操作してください。</p>
+    <p>※地図上をクリックすると、伝言投稿用のダイアログが表示されます。</p>
+  </section>
+  
+  <!-- 避難所状況 -->
+  <section id="evacuation">
+    <h2>エリア別避難所状況マップ</h2>
+    <p>避難所の位置、混雑状況、設備情報、支援物資の状況を表示します。<br>
+       ※店舗画面と同じ地図エリアを利用しています。</p>
+  </section>
+  
+  <!-- 地域コミュニティ掲示板 -->
+  <section id="community">
+    <h2>地域コミュニティサポート掲示板</h2>
+    <div id="communityBoard">
+      <ul id="communityPosts">
+        <li>[管理者] 初回投稿：災害時の連絡先はこちら→XXX-XXXX</li>
+      </ul>
     </div>
-
-    <div id="map" class="tabcontent">
-        <div class="layer-control">
-            <select id="layerSelect" onchange="changeLayer()">
-                <option value="std">標準地図</option>
-                <option value="relief">色別標高図</option>
-                <option value="ort">航空写真</option>
-            </select>
-        </div>
-        <div id="mapContainer"></div>
+    <div>
+      <h3>新規投稿</h3>
+      <div class="form-group">
+        <label for="commArea">エリア:</label>
+        <input type="text" id="commArea" placeholder="例：〇〇町内会">
+      </div>
+      <div class="form-group">
+        <label for="commMessage">内容:</label>
+        <input type="text" id="commMessage" placeholder="災害関連の情報を入力">
+      </div>
+      <button id="addCommPost">投稿する</button>
     </div>
-
-    <div id="bulletin" class="tabcontent">
-        <h3>地域掲示板</h3>
-        <div id="messagesList"></div>
-        <textarea id="newMessage" placeholder="メッセージを入力（140字以内）" maxlength="140"></textarea>
-        <button onclick="postMessage()">投稿</button>
+  </section>
+  
+  <!-- パーソナル防災アクションログ -->
+  <section id="actionLog">
+    <h2>パーソナル防災アクションログ</h2>
+    <div id="actionLogList">
+      <ul id="logPosts">
+        <li>2024-04-01: 昨年の地震で、家族との連絡手段の不足が課題と判明。</li>
+      </ul>
     </div>
-
-    <div id="log" class="tabcontent">
-        <h3>防災行動ログ</h3>
-        <div id="logEntries"></div>
-        <textarea id="newLog" placeholder="経験を記録"></textarea>
-        <button onclick="addLogEntry()">追加</button>
+    <div>
+      <h3>ログを追加</h3>
+      <div class="form-group">
+        <label for="logDate">日付:</label>
+        <input type="date" id="logDate">
+      </div>
+      <div class="form-group">
+        <label for="logText">内容:</label>
+        <input type="text" id="logText" placeholder="実施した対策・気づきなど">
+      </div>
+      <button id="addLog">追加</button>
     </div>
-
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script>
-        // 国土地理院タイルレイヤー設定
-        const gsiLayers = {
-            std: L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
-                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'
-            }),
-            relief: L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png', {
-                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'
-            }),
-            ort: L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/ort/{z}/{x}/{y}.jpg', {
-                attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'
-            })
-        };
-
-        // 地図初期化
-        const map = L.map('mapContainer', {
-            center: [35.681236, 139.767125],
-            zoom: 13,
-            layers: [gsiLayers.std]
+  </section>
+  
+  <!-- Leafletと地図操作用のスクリプト -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-oR61uJ4b0CH3zA0WFb2kJr9+Ob4QLE9R9gqLr3p2M0M=" crossorigin=""></script>
+  <script>
+    // タブ切り替え機能
+    document.querySelectorAll("nav button").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        document.querySelectorAll("section").forEach(function(sec) {
+          sec.classList.remove("active");
         });
+        var tabId = btn.getAttribute("data-tab");
+        document.getElementById(tabId).classList.add("active");
+      });
+    });
 
-        // データストレージ
-        let appData = JSON.parse(localStorage.getItem('disasterAppData')) || {
-            supplies: [],
-            messages: [],
-            logs: [],
-            shelters: []
-        };
-
-        // タブ機能
-        function openTab(evt, tabName) {
-            document.querySelectorAll('.tabcontent').forEach(tab => tab.style.display = 'none');
-            document.getElementById(tabName).style.display = 'block';
-            evt.currentTarget.className += ' active';
-        }
-
-        // 防災グッズ管理
-        function renderSupplies() {
-            const container = document.getElementById('suppliesList');
-            container.innerHTML = appData.supplies.map(item => `
-                <div class="item-card">
-                    <h4>${item.name}</h4>
-                    <p>数量: ${item.quantity}</p>
-                    <p>期限: ${item.expiry}</p>
-                    <button onclick="deleteItem(${appData.supplies.indexOf(item)})">削除</button>
-                </div>
-            `).join('');
-        }
-
-        function showAddItemForm() {
-            const name = prompt('アイテム名を入力:');
-            const quantity = prompt('数量を入力:');
-            const expiry = prompt('期限を入力（YYYY-MM-DD）:');
-            if (name && quantity && expiry) {
-                appData.supplies.push({ name, quantity, expiry });
-                saveData();
-                renderSupplies();
-            }
-        }
-
-        function deleteItem(index) {
-            if (confirm('本当に削除しますか？')) {
-                appData.supplies.splice(index, 1);
-                saveData();
-                renderSupplies();
-            }
-        }
-
-        // 掲示板機能
-        function postMessage() {
-            const text = document.getElementById('newMessage').value;
-            if (text) {
-                appData.messages.push({
-                    text,
-                    date: new Date().toLocaleString(),
-                    location: [map.getCenter().lat, map.getCenter().lng]
-                });
-                document.getElementById('newMessage').value = '';
-                saveData();
-                renderMessages();
-                addMessageMarker();
-            }
-        }
-
-        function renderMessages() {
-            const container = document.getElementById('messagesList');
-            container.innerHTML = appData.messages.map(msg => `
-                <div class="message">
-                    <p>${msg.date}</p>
-                    <p>${msg.text}</p>
-                </div>
-            `).join('');
-        }
-
-        // 地図マーカー管理
-        const markers = new L.FeatureGroup();
-        map.addLayer(markers);
-
-        function addMessageMarker() {
-            const lastMsg = appData.messages[appData.messages.length - 1];
-            const marker = L.marker(lastMsg.location)
-                .bindPopup(`<b>${lastMsg.date}</b><br>${lastMsg.text}`);
-            markers.addLayer(marker);
-        }
-
-        // 行動ログ
-        function addLogEntry() {
-            const text = document.getElementById('newLog').value;
-            if (text) {
-                appData.logs.push({
-                    text,
-                    date: new Date().toLocaleString(),
-                    advice: generateAdvice(text)
-                });
-                document.getElementById('newLog').value = '';
-                saveData();
-                renderLogs();
-            }
-        }
-
-        function generateAdvice(text) {
-            const adviceMap = {
-                '水': '水の備蓄は1人あたり1日3リットルが目安です',
-                '食料': '長期保存可能な非常食を最低3日分準備しましょう',
-                '避難所': '複数の避難経路を確認しておきましょう',
-                '懐中電灯': 'LEDタイプで電池式のものを推奨します',
-                'ラジオ': '手回し充電式のラジオが便利です'
-            };
-            return Object.entries(adviceMap).find(([k]) => text.includes(k))?.[1] || '定期的な防災訓練を実施しましょう';
-        }
-
-        function renderLogs() {
-            const container = document.getElementById('logEntries');
-            container.innerHTML = appData.logs.map(log => `
-                <div class="message">
-                    <p><strong>${log.date}</strong></p>
-                    <p>${log.text}</p>
-                    <p class="advice">→ ${log.advice}</p>
-                </div>
-            `).join('');
-        }
-
-        // 地図レイヤー切替
-        function changeLayer() {
-            const selected = document.getElementById('layerSelect').value;
-            map.eachLayer(layer => map.removeLayer(layer));
-            gsiLayers[selected].addTo(map);
-            markers.addTo(map);
-        }
-
-        // データ保存
-        function saveData() {
-            localStorage.setItem('disasterAppData', JSON.stringify(appData));
-        }
-
-        // 初期表示
-        document.getElementById('supplies').style.display = 'block';
-        renderSupplies();
-        renderMessages();
-        renderLogs();
-        appData.messages.forEach(addMessageMarker);
-    </script>
+    // 地図初期化（Leaflet）
+    var map = L.map('map').setView([35.6895, 139.6917], 12); // 東京を中心に表示
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // 各レイヤーグループの作成
+    var storeLayer = L.layerGroup().addTo(map);
+    var evacLayer = L.layerGroup().addTo(map);
+    var messageLayer = L.layerGroup().addTo(map);
+    
+    // サンプル：営業再開店舗のデータ
+    var stores = [
+      { name: "店舗A", lat: 35.6950, lng: 139.7000 },
+      { name: "店舗B", lat: 35.6800, lng: 139.7100 }
+    ];
+    stores.forEach(function(store) {
+      L.marker([store.lat, store.lng])
+        .bindPopup("<b>" + store.name + "</b><br>営業再開")
+        .addTo(storeLayer);
+    });
+    
+    // サンプル：避難所のデータ（混雑状況・設備情報などをポップアップで表示）
+    var evacCenters = [
+      { name: "避難所1", lat: 35.6850, lng: 139.6950, occupancy: "60%", facilities: "電源, Wi-Fi, トイレ" },
+      { name: "避難所2", lat: 35.7000, lng: 139.6800, occupancy: "40%", facilities: "電源, トイレ" }
+    ];
+    evacCenters.forEach(function(evac) {
+      L.marker([evac.lat, evac.lng], { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconSize: [25, 41], iconAnchor: [12, 41] }) })
+        .bindPopup("<b>" + evac.name + "</b><br>混雑状況: " + evac.occupancy + "<br>設備: " + evac.facilities)
+        .addTo(evacLayer);
+    });
+    
+    // 地図クリックで伝言ピンの追加（伝言掲示板機能）
+    map.on('click', function(e) {
+      // クリック位置に伝言投稿を促す
+      var message = prompt("この位置に伝言を追加してください:");
+      if (message) {
+        L.marker(e.latlng, { icon: L.icon({ iconUrl: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png', iconSize: [25, 41], iconAnchor: [12, 41] }) })
+          .bindPopup("<b>伝言</b><br>" + message)
+          .addTo(messageLayer);
+      }
+    });
+    
+    // チェックボックスでレイヤー表示切替
+    document.getElementById("layerStores").addEventListener("change", function(e) {
+      if (e.target.checked) {
+        map.addLayer(storeLayer);
+      } else {
+        map.removeLayer(storeLayer);
+      }
+    });
+    document.getElementById("layerEvacuation").addEventListener("change", function(e) {
+      if (e.target.checked) {
+        map.addLayer(evacLayer);
+      } else {
+        map.removeLayer(evacLayer);
+      }
+    });
+    document.getElementById("layerMessage").addEventListener("change", function(e) {
+      if (e.target.checked) {
+        map.addLayer(messageLayer);
+      } else {
+        map.removeLayer(messageLayer);
+      }
+    });
+    
+    // コミュニティ掲示板投稿処理（簡易実装）
+    document.getElementById("addCommPost").addEventListener("click", function() {
+      var area = document.getElementById("commArea").value.trim();
+      var msg = document.getElementById("commMessage").value.trim();
+      if (area && msg) {
+        var li = document.createElement("li");
+        li.textContent = "[" + area + "] " + msg;
+        document.getElementById("communityPosts").appendChild(li);
+        document.getElementById("commArea").value = "";
+        document.getElementById("commMessage").value = "";
+      } else {
+        alert("エリアと内容を入力してください。");
+      }
+    });
+    
+    // パーソナルアクションログ投稿処理
+    document.getElementById("addLog").addEventListener("click", function() {
+      var date = document.getElementById("logDate").value;
+      var text = document.getElementById("logText").value.trim();
+      if (date && text) {
+        var li = document.createElement("li");
+        li.textContent = date + ": " + text;
+        document.getElementById("logPosts").appendChild(li);
+        document.getElementById("logDate").value = "";
+        document.getElementById("logText").value = "";
+      } else {
+        alert("日付と内容を入力してください。");
+      }
+    });
+  </script>
 </body>
 </html>
